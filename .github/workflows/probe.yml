@@ -1,0 +1,32 @@
+name: probe
+on:
+  schedule: [{ cron: '*/5 * * * *' }]
+  workflow_dispatch:
+    inputs:
+      bogus: { description: 'test: ajoute une page bidon', required: false, default: '' }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Controle des pages et envoi a n8n
+        env:
+          HOOK: ${{ secrets.N8N_HOOK }}
+          BOGUS: ${{ inputs.bogus }}
+        run: |
+          check() { # nom, url, textes attendus (separes par |)
+            local body code err=""
+            body=$(mktemp)
+            code=$(curl -sL -m 20 -A 'Mozilla/5.0 (compatible; ClarisseMonitor/1.0)' -o "$body" -w '%{http_code}' "$2") || code=000
+            if [ "$code" != 200 ]; then err="HTTP $code"
+            elif grep -qiE 'has not been published|Page not found|Page introuvable|Attention Required' "$body"; then err="page generique ou introuvable"
+            else IFS='|' read -ra T <<< "$3"; for t in "${T[@]}"; do grep -qiF "$t" "$body" || err="texte attendu absent"; done; fi
+            jq -n --arg n "$1" --arg e "$err" '{name:$n, ok:($e==""), err:$e}'
+          }
+          {
+            check 'Accueil' 'https://www.clarisse-ernoux.com/' 'Yoga et Pilates en ligne pour femmes'
+            check 'Black Friday' 'https://www.clarisse-ernoux.com/black-friday' 'Black Friday|Clarisse Ernoux'
+            check 'Checkout annuel BF' 'https://app.clarisse-ernoux.com/offers/QYxrpcxp/checkout?coupon_code=BF20' 'checkout'
+            [ -n "$BOGUS" ] && check 'TEST bidon' "$BOGUS" 'Clarisse'
+          } | jq -s '{results:.}' | tee out.json
+          curl -s -m 20 -X POST -H 'Content-Type: application/json' -d @out.json "$HOOK" -o /dev/null -w 'n8n %{http_code}\n'
