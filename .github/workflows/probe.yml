@@ -1,6 +1,5 @@
 name: probe
 on:
-  schedule: [{ cron: '*/5 * * * *' }]
   workflow_dispatch:
     inputs:
       bogus: { description: 'test: ajoute une page bidon', required: false, default: '' }
