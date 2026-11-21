@@ -26,6 +26,6 @@ jobs:
             check 'Accueil' 'https://www.clarisse-ernoux.com/' 'Yoga et Pilates en ligne pour femmes'
             check 'Black Friday' 'https://www.clarisse-ernoux.com/black-friday' 'Black Friday|Clarisse Ernoux'
             check 'Checkout annuel BF' 'https://app.clarisse-ernoux.com/offers/QYxrpcxp/checkout?coupon_code=BF20' 'checkout'
-            [ -n "$BOGUS" ] && check 'TEST bidon' "$BOGUS" 'Clarisse'
+            if [ -n "$BOGUS" ]; then check 'TEST bidon' "$BOGUS" 'Clarisse'; fi
           } | jq -s '{results:.}' | tee out.json
           curl -s -m 20 -X POST -H 'Content-Type: application/json' -d @out.json "$HOOK" -o /dev/null -w 'n8n %{http_code}\n'
