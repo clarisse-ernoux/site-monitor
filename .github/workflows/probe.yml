@@ -28,4 +28,4 @@ jobs:
             check 'Checkout annuel BF' 'https://app.clarisse-ernoux.com/offers/QYxrpcxp/checkout?coupon_code=BF20' 'checkout'
             if [ -n "$BOGUS" ]; then check 'TEST bidon' "$BOGUS" 'Clarisse'; fi
           } | jq -s '{results:.}' | tee out.json
-          curl -s -m 20 --retry 3 --retry-all-errors --retry-delay 10 -X POST -H 'Content-Type: application/json' -d @out.json "$HOOK" -o /dev/null -w 'n8n %{http_code}\n'
+          curl -s -m 20 --retry 3 --retry-all-errors --retry-delay 10 -X POST -H 'Content-Type: application/json' -d @out.json "$HOOK" -o /dev/null -w 'n8n %{http_code}\n' || echo '::warning::n8n injoignable, resultat non transmis'  # ponytail: un hoquet n8n ne fait plus echouer le run (fausse alerte GitHub)
